@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "model" ADD COLUMN     "winRate" DOUBLE PRECISION NOT NULL DEFAULT 0;
