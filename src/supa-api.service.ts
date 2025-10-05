@@ -38,14 +38,32 @@ const supabaseUrl = 'https://mhezydornlecnirzrcva.supabase.co';
 const supabaseKey =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXp5ZG9ybmxlY25pcnpyY3ZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg3Njc1NjgsImV4cCI6MjA1NDM0MzU2OH0.MdypDytkc-8IFTfECb1DZmBufWIrOYA3lnxOQ7WNl6A';
 
-export async function getData(): Promise<VideoModel[] | undefined> {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  const { data, error } = await supabase.from('models').select();
-  if (error) {
-    console.error('Error deleting record:', error);
-  } else {
-    return data;
+  export async function getData(): Promise<VideoModel[] | undefined> {
+    const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
+    const { data, error } = await supabase
+      .from("models")
+      .select()
+      .order("averageRating", { ascending: false });
+  
+    if (error) {
+      console.error('Error retrieving record:', error);
+      return undefined;
+    } else {
+      const validData = data.filter(
+        (model) => model.averageRating != null && model.averageRating > 0
+      ); 
+      const selectedGirls = validData.slice(0, 256);
+      return shuffle(selectedGirls);
+    }
   }
+  
+
+function shuffle<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
 export async function add(updateData: VideoModel) {
@@ -117,3 +135,32 @@ export const calculateAverageRating = (video: VideoModel): number => {
   const total = ratingFields.reduce((sum, rating) => sum + rating, 0);
   return parseFloat((total / ratingFields.length).toFixed(1)); // Rounded to 1 decimal place
 };
+
+
+export async function updateModelPlaces(idModel: number, place: string) {
+  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
+  const { data: model, error } = await supabase
+    .from("models")
+    .select("*")
+    .eq("id", idModel)
+    .single();
+
+  if (error || !model) {
+    console.error("Error fetching model:", error);
+    return;
+  }
+  
+  // Folosim model[place] pentru a accesa valoarea actuală din câmpul specificat de 'place'
+  const { error: updateError } = await supabase
+    .from("models")
+    .update({ [place]: model[place] + 1 })
+    .eq("id", model.id);
+
+  if (updateError) {
+    console.error("Error updating model:", updateError);
+  } else {
+    console.log("Model updated successfully");
+  }
+}
+
+
