@@ -14,8 +14,6 @@ SUPABASE_ANON_KEY=ey...
 Apoi rulează:
 
 ```bash
-yarn install
-# sau
 npm install
 ```
 
@@ -23,13 +21,13 @@ npm install
 
 ```bash
 # watch mode
-yarn start:dev
-# sau
 npm run start:dev
 
-# build + prod
-yarn build
-yarn start:prod
+# build
+npm run build
+
+# prod
+npm run start:prod
 ```
 
 Serverul pornește pe `http://localhost:3001`.
