@@ -3,95 +3,80 @@ export interface VideoModel {
   imageUrl: string;
   isOnline: boolean;
   id: number;
+  status?: string;
 }
 
 import { createBrowserClient } from '@supabase/ssr';
-import { Database } from './database.types';
-const supabaseUrl = 'https://lrsgsgkissnmromalfsu.supabase.co';
-const supabaseKey =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxyc2dzZ2tpc3NubXJvbWFsZnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NDExMzEsImV4cCI6MjA2MDExNzEzMX0.OlXZpo0mgZDnKK9iiEyrzF1avMlPdwa3YSuf3H0-YK4';
 
+function createSupabaseClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
 
-export async function getModels(): Promise<VideoModel[] | undefined> {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  const { data, error } = await supabase
-    .from('model')
-    .select()
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Error retrieving record:', error);
-    return undefined;
-  } else {
-    return data;
+  if (!url || !key) {
+    throw new Error('SUPABASE_URL or SUPABASE_ANON_KEY is not set');
   }
+
+  return createBrowserClient(url, key);
 }
 
-export async function getOnlineModels(): Promise<VideoModel[] | undefined> {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  const { data, error } = await supabase
-    .from('model')
-    .select()
-    .eq('isOnline', true)
-    .order('startedAt', { ascending: true });
+export async function getModels(): Promise<VideoModel[]> {
+  const supabase = createSupabaseClient();
 
-  if (error) {
-    console.error('Error retrieving record:', error);
-    return undefined;
-  } else {
-    return data;
+  let allData: any[] = [];
+  let from = 0;
+  const batchSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('ChatModels')
+      .select('*')
+      .range(from, from + batchSize - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error retrieving ChatModels:', error);
+      return [];
+    }
+
+    if (data && data.length > 0) {
+      allData = allData.concat(data);
+      from += batchSize;
+      hasMore = data.length === batchSize;
+    } else {
+      hasMore = false;
+    }
   }
+
+  return allData as VideoModel[];
 }
 
-export async function getAllModels(): Promise<VideoModel[] | undefined> {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  console.log("get models");
-  const { data, error } = await supabase
-    .from('model')
-    .select()
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Error retrieving record:', error);
-    return undefined;
-  } else {
-    return data;
-  }
+export async function addModel(name: string, status?: string) {
+  const supabase = createSupabaseClient();
+  const payload: any = { name };
+  if (status) payload.status = status;
+  const { error } = await supabase.from('ChatModels').insert(payload);
+  if (error) console.error('Error adding model:', error);
 }
 
-export async function addModel(name: string) {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  const { error } = await supabase.from('model').insert({ name });
-  console.log(error);
-}
-
-// Delete a model row by its unique name
-export async function deleteModelByName(name: string) {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  const { error } = await supabase.from('model').delete().eq('name', name);
-  if (error) {
-    console.error('Error deleting model by name:', name, error);
-  }
-}
-
-
-
-export async function updateDbOnlineStatus(id: number, imageUrl : string, startedAt?: Date) {
-  const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-  const { error, data } = await supabase
-    .from('model')
-    .update({ isOnline: true, imageUrl: imageUrl, startedAt: startedAt })
+export async function updateDbOnlineStatus(
+  id: number,
+  imageUrl: string,
+  startedAt?: Date,
+) {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase
+    .from('ChatModels')
+    .update({ isOnline: true, imageUrl, startedAt })
     .eq('id', id);
-
-  if (error) {
-    console.error(error);
-  }
-  if (data) {
-    console.log(data);
-  }
+  if (error) console.error('Error updating online status:', error);
 }
 
-  export async function updateDbOnlineStatusToFalse(id: number) {
-    const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
-    await supabase.from('model').update({ isOnline: false }).eq('id', id);
-  }
+export async function updateDbOnlineStatusToFalse(id: number) {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase
+    .from('ChatModels')
+    .update({ isOnline: false })
+    .eq('id', id);
+  if (error) console.error('Error updating online status to false:', error);
+}

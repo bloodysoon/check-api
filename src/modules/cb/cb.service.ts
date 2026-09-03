@@ -1,24 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { getModels, updateDbOnlineStatus, updateDbOnlineStatusToFalse, VideoModel } from 'src/supa-api.service';
 
 const cbApi = 'https://chaturbate.com/affiliates/api/onlinerooms/?format=json&wm=3YHSK';
 
-// Define type for Chaturbate API response
 interface CBApiModel {
   username: string;
   current_show: string;
   image_url: string;
-  // add other fields if needed
 }
 
 @Injectable()
 export class CBService {
   private readonly logger = new Logger(CBService.name);
 
-  /**
-   * Fetches Chaturbate API data
-   */
   async getCbData(): Promise<CBApiModel[]> {
     try {
       const response = await fetch(cbApi);
@@ -33,12 +27,22 @@ export class CBService {
     }
   }
 
-  /**
-   * Cron job: Update models' online status every minute
-   */
-  @Cron(CronExpression.EVERY_MINUTE)
-  async handleCron() {
-    this.logger.debug('Update cb status');
+  async getCbModels(
+    limit: number = 20,
+    page: number = 1,
+  ): Promise<{ name: string; image_url: string }[]> {
+    const data = await this.getCbData();
+    const publicModels = data.filter((model) => model.current_show === 'public');
+    const mapped = publicModels.map((model) => ({
+      name: model.username,
+      image_url: model.image_url,
+    }));
+    const from = (page - 1) * limit;
+    return mapped.slice(from, from + limit);
+  }
+
+  async syncWithCb() {
+    this.logger.debug('Sync with Chaturbate');
     const models = await getModels();
     const cbData = await this.getCbData();
 
@@ -50,24 +54,18 @@ export class CBService {
         if (wasOnline !== res.isOnline) {
           if (res.isOnline) {
             this.logger.log(`${model.name} is online`);
-            // Only update image URL if online
             await updateDbOnlineStatus(model.id!, res.imageUrl!, new Date());
           } else {
             this.logger.error(`${model.name} is offline`);
             await updateDbOnlineStatusToFalse(model.id!);
           }
         } else if (res.isOnline) {
-          // Only update image URL if still online
           await updateDbOnlineStatus(model.id!, res.imageUrl!);
         }
-        // If offline and status unchanged, do nothing
       })
     );
   }
 
-  /**
-   * Checks if a model is online in the Chaturbate data
-   */
   private async checkIfModelIsOnline(modelUsername: string, data: CBApiModel[]): Promise<{ isOnline: boolean; imageUrl?: string }> {
     try {
       const model = data.find(

@@ -1,8 +1,8 @@
 import * as Joi from 'joi';
-import dbConfig, { dbSchema } from './db.config';
 
-export const configArray = [dbConfig];
+export const configArray = [];
 
 export const environmentSchema = Joi.object({
-  ...dbSchema,
+  SUPABASE_URL: Joi.string().min(1).required(),
+  SUPABASE_ANON_KEY: Joi.string().min(1).required(),
 });

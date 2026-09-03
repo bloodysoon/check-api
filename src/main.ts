@@ -3,9 +3,14 @@ import { AppModule } from './app.module';
 import { json, urlencoded } from 'express';
 import * as express from 'express';
 import * as path from 'path';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Enable global logging interceptor for route debugging
+  app.useGlobalInterceptors(new LoggingInterceptor());
+  
   app.enableCors({
     origin: '*',
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
