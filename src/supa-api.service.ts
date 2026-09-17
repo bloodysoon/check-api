@@ -4,6 +4,7 @@ export interface VideoModel {
   isOnline: boolean;
   id: number;
   status?: string;
+  attemp?: number;
 }
 
 import { createClient } from '@supabase/supabase-js';
