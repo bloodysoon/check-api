@@ -6,7 +6,7 @@ export interface VideoModel {
   status?: string;
 }
 
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 function createSupabaseClient() {
   const url = process.env.SUPABASE_URL;
@@ -16,7 +16,7 @@ function createSupabaseClient() {
     throw new Error('SUPABASE_URL or SUPABASE_ANON_KEY is not set');
   }
 
-  return createBrowserClient(url, key);
+  return createClient(url, key);
 }
 
 export async function getModels(): Promise<VideoModel[]> {
@@ -55,8 +55,11 @@ export async function addModel(name: string, status?: string) {
   const supabase = createSupabaseClient();
   const payload: any = { name };
   if (status) payload.status = status;
-  const { error } = await supabase.from('ChatModels').insert(payload);
-  if (error) console.error('Error adding model:', error);
+  console.log('Inserting into ChatModels:', payload);
+  const { data, error } = await supabase.from('ChatModels').insert(payload).select();
+  console.log('Supabase insert result:', { data, error });
+  if (error) throw new Error(`Error adding model: ${error.message}`);
+  return data;
 }
 
 export async function updateDbOnlineStatus(
@@ -79,4 +82,29 @@ export async function updateDbOnlineStatusToFalse(id: number) {
     .update({ isOnline: false })
     .eq('id', id);
   if (error) console.error('Error updating online status to false:', error);
+}
+
+export async function incrementAttemp(name: string) {
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from('ChatModels')
+    .select('attemp')
+    .eq('name', name)
+    .maybeSingle();
+
+  if (error) throw new Error(`Error reading attemp: ${error.message}`);
+  if (!data) throw new Error(`Model not found: ${name}`);
+
+  const current = (data as any).attemp ?? 0;
+  const next = current + 1;
+
+  const { data: updated, error: updateError } = await supabase
+    .from('ChatModels')
+    .update({ attemp: next })
+    .eq('name', name)
+    .select()
+    .single();
+
+  if (updateError) throw new Error(`Error updating attemp: ${updateError.message}`);
+  return updated;
 }

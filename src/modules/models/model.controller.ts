@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { addModel } from 'src/supa-api.service';
+import { addModel, incrementAttemp } from 'src/supa-api.service';
 import { CBService } from '../cb/cb.service';
 
 @Controller('model')
@@ -19,14 +19,22 @@ export class ModelController {
   @Post('/cb')
   async createModel(
     @Body() body: { name: string; status?: string },
-  ): Promise<{ ok: boolean }> {
-    await addModel(body.name, body.status);
-    return { ok: true };
+  ): Promise<{ ok: boolean; data: any }> {
+    const data = await addModel(body.name, body.status);
+    return { ok: true, data };
   }
 
   @Post('/cb/sync')
   async syncWithCb(): Promise<{ ok: boolean }> {
     await this.cbService.syncWithCb();
     return { ok: true };
+  }
+
+  @Post('/cb/increment-attemp')
+  async incrementAttemp(
+    @Body() body: { name: string },
+  ): Promise<{ name: string; attemp: number }> {
+    const updated = await incrementAttemp(body.name);
+    return { name: body.name, attemp: (updated as any).attemp };
   }
 }
