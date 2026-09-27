@@ -30,6 +30,8 @@ export default function ModelClient({
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
+  const currentStatus = STATUS_OPTIONS.find((option) => option.value === status)
+
   const saveStatus = async () => {
     if (!status) return
 
@@ -118,13 +120,36 @@ export default function ModelClient({
             </Button>
           </div>
 
+          {currentStatus && (
+            <div className="mt-3">
+              <span
+                className={`
+                  inline-block
+                  rounded-[2px]
+                  px-2
+                  py-1
+                  text-[10px]
+                  font-bold
+                  uppercase
+                  leading-none
+                  text-white
+                  ${currentStatus.badge}
+                `}
+              >
+                {currentStatus.label}
+              </span>
+            </div>
+          )}
+
           <div className="mt-3">
             <Select
               value={status}
               onValueChange={(value) => setStatus(value || '')}
             >
               <SelectTrigger className="h-8 w-full rounded-[2px] border-[#cfcfcf] bg-white px-2 text-[12px] shadow-none focus:ring-1 focus:ring-[#f47321]">
-                <SelectValue placeholder="Set status..." />
+                <SelectValue placeholder="Set status...">
+                  {currentStatus?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="min-w-[150px] rounded-[2px] border border-[#cfcfcf] bg-white text-[#333] shadow-md">
                 {STATUS_OPTIONS.map((option) => (

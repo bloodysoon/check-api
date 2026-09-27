@@ -10,7 +10,7 @@ import {
   modelListSchema,
 } from './schemas'
 
-const NO_STATUS_FILTER = 'null'
+const NO_STATUS_FILTER = 'none'
 
 function buildListPath({ limit, page, status }: ListQuery): string {
   const params = new URLSearchParams({
@@ -42,7 +42,7 @@ export async function getModel(name: string): Promise<Model> {
   const target = name.toLowerCase().trim()
 
   const candidates = [
-    `/model/cb/${encoded}`,
+    `/api/models/${encoded}`,
     `/model/cb?name=${encoded}`,
   ]
 
@@ -75,15 +75,19 @@ const upsertResponseSchema = z
   .transform(() => ({ ok: true }) as const)
 
 export async function upsertModels(body: UpsertBody) {
-  const result = await apiRequest('/model/cb/upsert', upsertResponseSchema, {
-    method: 'POST',
-    body,
-  })
+  await Promise.all(
+    body.models.map((model) =>
+      apiRequest('/model/cb/update-status', upsertResponseSchema, {
+        method: 'POST',
+        body: model,
+      }),
+    ),
+  )
 
   revalidateTag(CACHE_TAGS.models)
-  body.models.forEach((model) => revalidateTag(CACHE_TAGS.model(model.name)))
+  body.models.forEach((m) => revalidateTag(CACHE_TAGS.model(m.name)))
 
-  return result
+  return { ok: true } as const
 }
 
 export async function syncModels() {

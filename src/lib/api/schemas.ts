@@ -10,15 +10,23 @@ export const statusSchema = z.enum(STATUS_VALUES)
  */
 const upstreamModelSchema = z
   .object({
+    id: z.number().nullish(),
     name: z.string().min(1),
     image_url: z.string().nullish(),
     imageUrl: z.string().nullish(),
     status: z.string().nullish(),
+    isOnline: z.boolean().nullish(),
+    startedAt: z.string().nullish(),
+    attemp: z.number().nullish(),
   })
   .transform((row) => ({
+    id: row.id ?? null,
     name: row.name,
     image_url: row.image_url ?? row.imageUrl ?? null,
     status: row.status ?? null,
+    isOnline: row.isOnline ?? null,
+    startedAt: row.startedAt ?? null,
+    attemp: row.attemp ?? null,
   }))
 
 export const modelSchema = upstreamModelSchema
@@ -35,8 +43,10 @@ export const modelListSchema = z
     z.array(upstreamModelSchema),
     z.object({ data: z.array(upstreamModelSchema) }),
     upstreamModelSchema,
+    z.null(),
   ])
   .transform((payload) => {
+    if (payload === null) return []
     if (Array.isArray(payload)) return payload
     if ('data' in payload) return payload.data
     return [payload]

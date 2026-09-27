@@ -11,8 +11,12 @@ export function jsonOk<T>(data: T, init: JsonInit = {}): NextResponse {
   const headers: Record<string, string> = {}
 
   if (init.maxAgeSeconds !== undefined) {
-    headers['Cache-Control'] =
-      `public, max-age=0, s-maxage=${init.maxAgeSeconds}, stale-while-revalidate=${init.maxAgeSeconds * 2}`
+    if (init.maxAgeSeconds === 0) {
+      headers['Cache-Control'] = 'no-store'
+    } else {
+      headers['Cache-Control'] =
+        `public, max-age=0, s-maxage=${init.maxAgeSeconds}`
+    }
   }
 
   return NextResponse.json(data, { status: init.status ?? 200, headers })

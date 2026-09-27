@@ -48,10 +48,13 @@ export default function Home() {
         })
 
         if (statusFilter !== 'all') {
-          params.set('status', statusFilter === 'no_status' ? 'null' : statusFilter)
+          params.set('status', statusFilter === 'no_status' ? 'none' : statusFilter)
         }
 
-        const data = await fetchJson<Model[]>(`/api/models?${params.toString()}`)
+        const data = await fetchJson<Model[]>(
+          `/api/models?${params.toString()}`,
+          { cache: 'no-store' },
+        )
 
         setModels(data)
         setStatuses(
